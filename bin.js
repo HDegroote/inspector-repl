@@ -79,7 +79,7 @@ socket.on('open', function () {
         cpuProfileLocation = `inspector-repl-${timestamp}.cpuprofile`
       }
       cpuProfileLocation = path.resolve(cpuProfileLocation)
-      console.log(`Creating CPU profile at ${cpuProfileLocation}`)
+      console.log(`Creating CPU profile of ${profileLength}ms at ${cpuProfileLocation}`)
 
       socket.send(JSON.stringify({
         id: id++,
