@@ -9,6 +9,8 @@ const socket = new WS(process.argv[2])
 
 let heapdumpLocation = null
 let heapdumpMessageId = -1
+let cpuProfileLocation = null
+let cpuProfileMessageId = null
 
 socket.on('message', function (data) {
   const m = JSON.parse(data)
@@ -19,6 +21,11 @@ socket.on('message', function (data) {
   } else if (!m.method && m.result) {
     if (m.id === heapdumpMessageId) {
       console.log(`Heapdump finished at ${heapdumpLocation}`)
+    } else if (m.id === cpuProfileMessageId) {
+      console.log(`Saving CPU profile to ${cpuProfileLocation}`)
+      fs.promises.writeFile(cpuProfileLocation, JSON.stringify(m.result.profile))
+        .then(() => { console.log('Saved CPU profile')})
+        .catch((e) => console.error(e))
     } else {
       console.log(m.result.result?.value)
     }
@@ -36,7 +43,13 @@ socket.on('open', function () {
     method: 'HeapProfiler.enable'
   }))
 
-  let id = 2
+  socket.send(JSON.stringify({
+    id: 2,
+    method: 'Profiler.enable'
+  }))
+
+
+  let id = 3
 
   process.stdin.on('data', function (data) {
     const cleanData = b4a.toString(data).trim()
@@ -57,6 +70,33 @@ socket.on('open', function () {
 
       return
     }
+
+    if (cleanData.startsWith('profiler')) {
+      const profileLength = cleanData.split(' ')[1] || 5_000
+      cpuProfileLocation = cleanData.split(' ')[2]
+      if (!cpuProfileLocation) {
+        const timestamp = new Date(Date.now()).toISOString().split('.')[0].replaceAll(':', '-')
+        cpuProfileLocation = `inspector-repl-${timestamp}.cpuprofile`
+      }
+      cpuProfileLocation = path.resolve(cpuProfileLocation)
+      console.log(`Creating CPU profile at ${cpuProfileLocation}`)
+
+      socket.send(JSON.stringify({
+        id: id++,
+        method: 'Profiler.start',
+      }))
+
+      setTimeout(() => {
+        cpuProfileMessageId = id++
+        socket.send(JSON.stringify({
+          id: cpuProfileMessageId,
+          method: 'Profiler.stop'
+        }))
+      }, profileLength)
+
+      return
+    }
+
     socket.send(JSON.stringify({
       id: id++,
       method: 'Runtime.evaluate',
