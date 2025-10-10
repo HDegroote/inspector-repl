@@ -104,3 +104,5 @@ socket.on('open', function () {
     }))
   })
 })
+
+console.log('Available commands:\n- heapdump <location>?\n- profiler <lengthMs>? <location>?')
