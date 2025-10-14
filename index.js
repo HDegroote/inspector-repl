@@ -44,7 +44,6 @@ class InspectorRepl extends EventEmitter {
       if (m.id === this._heapdumpMessageId) {
         this.emit('heapdump-done', this._heapdumpLocation)
       } else if (m.id === this._cpuProfileMessageId) {
-        console.log('writing to', this._cpuProfileLocation, m)
         fs.promises.writeFile(this._cpuProfileLocation, JSON.stringify(m.result.profile))
           .then(() => { this.emit('cpu-profile-saved', this._cpuProfileLocation) })
           .catch((e) => { this.emit('cpu-profile-error', e) })
